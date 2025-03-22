@@ -1,0 +1,13 @@
+21.03.2025 (пятница):
+Начало работы над проектом.
+- загрузил датасет с kaggle
+- разделил категории на
+лицензируемые: baby_products, beauty_health, electronics, grocery, pet_supplies
+и нелицензируемые: clothing_accessories_jewellery, hobby_arts_stationary, home_kitchen_tools, sports_outdoor
+- создал кастомный датасет CustomDataset для работы с изображениями
+метка 0 обозначает, что товар нелицензируем, 1 - лицензируем
+- начал изучать, что такое vision transformer.
+https://arxiv.org/pdf/2006.03677 - статья по vit
+22.03.2025 (суббота):
+Продолжаю разбираться в vision transformer
+
