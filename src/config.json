@@ -1,0 +1,9 @@
+{
+  "data": {
+    "path_check": "..\\ecommerce-product-images-18k\\versions\\1\\ECOMMERCE_PRODUCT_IMAGES\\check",
+    "path_train": "..\\ecommerce-product-images-18k\\versions\\1\\ECOMMERCE_PRODUCT_IMAGES\\train",
+    "path_val": "..\\ecommerce-product-images-18k\\versions\\1\\ECOMMERCE_PRODUCT_IMAGES\\val",
+    "batch_size": 32,
+    "image_size": [224, 224]
+  }
+}
