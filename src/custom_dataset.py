@@ -12,7 +12,7 @@ class CustomDataset(Dataset):
         self.samples = []
 
         licensed = ['BABY_PRODUCTS', 'BEAUTY_HEALTH', 'ELECTRONICS', 'GROCERY', 'PET_SUPPLIES']
-        unlicensed = ['CLOTHING_ACCESSORIES_JEWELLERY', 'HOBBY_ARTS_STATIONARY', 'HOME_KITCHEN_TOOLS', 'HOME_KITCHEN_TOOLS']
+        unlicensed = ['CLOTHING_ACCESSORIES_JEWELLERY', 'HOBBY_ARTS_STATIONARY', 'HOME_KITCHEN_TOOLS', 'SPORTS_OUTDOOR']
 
         for category in os.listdir(root_dir):
             category_path = os.path.join(self.root_dir, category)
@@ -20,9 +20,9 @@ class CustomDataset(Dataset):
                 continue
 
             if category in licensed:
-                label = torch.tensor([1], dtype=torch.int32)
+                label = torch.tensor([1.0])
             elif category in unlicensed:
-                label = torch.tensor([0], dtype=torch.int32)
+                label = torch.tensor([0.0])
             else:
                 continue
 
