@@ -2,13 +2,16 @@ import os
 from PIL import Image
 import torch
 from torch.utils.data import Dataset
-
-
+from transformers import ViTImageProcessor
 
 class CustomDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
+    def __init__(
+            self,
+            root_dir: str,
+            processor: ViTImageProcessor
+    ) -> None:
         self.root_dir = root_dir
-        self.transform = transform
+        self.processor = processor
         self.samples = []
 
         licensed = ['BABY_PRODUCTS', 'BEAUTY_HEALTH', 'ELECTRONICS', 'GROCERY', 'PET_SUPPLIES']
@@ -20,9 +23,9 @@ class CustomDataset(Dataset):
                 continue
 
             if category in licensed:
-                label = torch.tensor([1.0])
+                label = 1
             elif category in unlicensed:
-                label = torch.tensor([0.0])
+                label = 0
             else:
                 continue
 
@@ -38,11 +41,12 @@ class CustomDataset(Dataset):
         img_path, label = self.samples[idx]
 
         image = Image.open(img_path).convert('RGB')
-
-        if self.transform:
-            image = self.transform(image)
-
-        return {'pixel_values': image, 'labels': label}
+        inputs = self.processor(
+            images=image,
+            return_tensors='pt'
+        )
+        pixel_values = inputs['pixel_values'].squeeze(0) # убираем измерение батча
+        return {'pixel_values': pixel_values, 'labels': torch.tensor(label)}
 
 
 
