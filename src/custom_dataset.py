@@ -42,7 +42,7 @@ class CustomDataset(Dataset):
         if self.transform:
             image = self.transform(image)
 
-        return image, label
+        return {'pixel_values': image, 'labels': label}
 
 
 
