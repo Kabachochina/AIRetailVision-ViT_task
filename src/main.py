@@ -1,101 +1,95 @@
 import torch
+from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import numpy as np
+from transformers import ViTFeatureExtractor, ViTForImageClassification, ViTImageProcessor, TrainingArguments, Trainer
+
+from evaluate import load
+
 from custom_dataset import CustomDataset
 import json
 
-from src.train import train_model, test_model
-from src.utils import save_model
-from src.vit_model import ViTClassifier
+from src.train import test_model
 
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-transform = transforms.Compose([
-    transforms.Resize(config['data']['image_size']),
-    transforms.ToTensor()
-])
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-train_transform = transforms.Compose([
-    transforms.RandAugment(),
-    transforms.Resize((224, 224)),
-    transforms.ToTensor()
-])
+model_name_or_path = 'google/vit-base-patch16-224-in21k'
+processor = ViTImageProcessor.from_pretrained(model_name_or_path)
 
 train_dataset = CustomDataset(
     root_dir=config['data']['path_train'],
-    transform=train_transform
-)
-
-train_dataloader = DataLoader(
-    dataset=train_dataset,
-    batch_size=config['data']['batch_size'],
-    shuffle=True
+    processor=processor
 )
 
 valid_dataset = CustomDataset(
     root_dir=config['data']['path_valid'],
-    transform=transform
-)
-
-valid_dataloader = DataLoader(
-    dataset=valid_dataset,
-    batch_size=config['data']['batch_size'],
-    shuffle=True
+    processor=processor
 )
 
 test_dataset = CustomDataset(
     root_dir=config['data']['path_test'],
-    transform=transform
+    processor=processor
 )
 
-test_dataloader = DataLoader(
-    dataset=test_dataset,
-    batch_size=config['data']['batch_size'],
-    shuffle=True
-)
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# device = torch.device('cpu')
-
-model = ViTClassifier(
-    num_transformer_layers=6,
-    embed_dim=128,
-    num_heads=4,
-    patch_size=16,
-    num_patches=((config['data']['image_size'][0] // 16) ** 2), # делим на patch size
-    mlp_dim=128*2,
-    num_classes=1,
-    device=device
+model = ViTForImageClassification.from_pretrained(
+    pretrained_model_name_or_path=model_name_or_path,
+    num_labels=2
 ).to(device)
 
-optimizer = torch.optim.AdamW(
-    params=model.parameters(),
-    lr = 5e-5
+training_args = TrainingArguments(
+    output_dir='../vit_tuned',
+    eval_strategy='epoch',
+    per_device_train_batch_size=config['data']['batch_size'],
+    per_device_eval_batch_size=config['data']['batch_size'],
+    num_train_epochs=3,
+    learning_rate=5e-5,
+    weight_decay=0.01
 )
 
-loss_fn = torch.nn.BCEWithLogitsLoss()
 
-train_model(
+metric = load("accuracy")
+
+def compute_metrics(p):
+    global metric
+    return metric.compute(predictions=np.argmax(p.predictions, axis=1), references=p.label_ids)
+
+trainer = Trainer(
     model=model,
-    loss_fn=loss_fn,
-    epochs=10,
-    device=device,
-    optimizer=optimizer,
-    train_dataloader=train_dataloader,
-    valid_dataloader=valid_dataloader
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=valid_dataset,
+    compute_metrics=compute_metrics
 )
+
+print('Test before training')
 
 test_model(
     model=model,
-    loss_fn=loss_fn,
+    loss_fn=torch.nn.CrossEntropyLoss(),
     device=device,
-    test_dataloader=test_dataloader
+    test_dataloader=DataLoader(
+        dataset=test_dataset,
+        batch_size=config['data']['batch_size']
+    )
 )
 
-save_model(
+trainer.train()
+
+trainer.save_model(
+    output_dir='../saved_model'
+)
+
+print('Test after training')
+
+test_model(
     model=model,
-    path='../saved_models/test_model_1.ckpt'
+    loss_fn=CrossEntropyLoss(),
+    device=device,
+    test_dataloader=DataLoader(dataset=test_dataset)
 )
 
 
