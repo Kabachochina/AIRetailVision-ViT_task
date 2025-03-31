@@ -18,7 +18,7 @@ class PGDAttack:
         self.loss_func = self._cross_entropy
 
     def _cross_entropy(self, x, y):
-        logits = self.model(x)
+        logits = self.model(x).logits
         return torch.nn.functional.cross_entropy(logits, y)
 
     def perturb(
