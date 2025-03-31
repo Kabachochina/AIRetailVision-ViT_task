@@ -5,5 +5,9 @@
     "path_valid": "..\\ecommerce-product-images-18k\\versions\\1\\ECOMMERCE_PRODUCT_IMAGES\\val",
     "batch_size": 16,
     "image_size": [224, 224]
+  },
+
+  "testing_data": {
+    "path_orig_test": "..\\data_for_testing\\original_test"
   }
 }
