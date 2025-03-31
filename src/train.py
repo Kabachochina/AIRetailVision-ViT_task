@@ -52,13 +52,17 @@ def test_model(
     )
 
     with torch.no_grad():
-        for (images, labels) in progress_bar:
-            images, labels = images.to(device), labels.to(device)
+        for batch in progress_bar:
+            images = batch["pixel_values"].to(device)
+            labels = batch["labels"].to(device)
 
-            prediction = model(images)
-            test_loss += loss_fn(prediction, labels).item() # can be output for check loss
-            correct += (prediction.round() == labels).type(torch.float).sum().item()
-            count_processed_images += len(images)
+            outputs = model(pixel_values=images)
+            logits = outputs.logits
+
+            test_loss += loss_fn(logits, labels).item() # can be output for check loss
+            predictions = logits.argmax(dim=1)
+            correct += (predictions == labels).sum().item()
+            count_processed_images += images.size(0)
 
             progress_bar.set_postfix({
                 "Current Accuracy": f"{(correct / count_processed_images) * 100:.2f}%"
