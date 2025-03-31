@@ -1,4 +1,6 @@
 import os
+
+import torchvision
 from PIL import Image
 import torch
 from torch.utils.data import Dataset
@@ -8,10 +10,11 @@ class CustomDataset(Dataset):
     def __init__(
             self,
             root_dir: str,
-            processor: ViTImageProcessor
+            processor: ViTImageProcessor = None
     ) -> None:
         self.root_dir = root_dir
         self.processor = processor
+        self.default_transform = torchvision.transforms.ToTensor()
         self.samples = []
 
         licensed = ['BABY_PRODUCTS', 'BEAUTY_HEALTH', 'ELECTRONICS', 'GROCERY', 'PET_SUPPLIES']
@@ -41,11 +44,15 @@ class CustomDataset(Dataset):
         img_path, label = self.samples[idx]
 
         image = Image.open(img_path).convert('RGB')
-        inputs = self.processor(
-            images=image,
-            return_tensors='pt'
-        )
-        pixel_values = inputs['pixel_values'].squeeze(0) # убираем измерение батча
+        if self.processor:
+            inputs = self.processor(
+                images=image,
+                return_tensors='pt'
+            )
+            pixel_values = inputs['pixel_values'].squeeze(0)  # убираем измерение батча
+        else:
+            pixel_values = self.default_transform(image)
+
         return {'pixel_values': pixel_values, 'labels': torch.tensor(label)}
 
 
