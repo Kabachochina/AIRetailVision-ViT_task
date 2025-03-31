@@ -1,9 +1,16 @@
+from typing import Optional
+
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
+from src.attack import PGDAttack
 
-def show_image(image_tensor: torch.Tensor):
+
+def show_image(
+        image_tensor: torch.Tensor,
+        save_name: Optional[str] = None
+):
     """
     Принимает тензор изображения с форматом (C, H, W) и отображает его.
     Если значения не в диапазоне [0, 1], функция пытается их нормализовать.
@@ -20,4 +27,23 @@ def show_image(image_tensor: torch.Tensor):
     plt.imshow(image_array)
     plt.axis('off')
     plt.show()
+    if save_name:
+        plt.imsave(f"../{save_name}.png", image_array)
 
+def show_adversarial_pgd_image(
+        image_tensor: torch.Tensor,
+        label: torch.Tensor,
+        attack: PGDAttack
+):
+    """
+    Проводит атаку на изображение и применяет метод show_image
+    """
+    adv_image = attack.perturb(
+        images=image_tensor,
+        labels=label
+    )
+    adv_image = adv_image.to(torch.device('cpu'))
+    show_image(
+        image_tensor=adv_image[0],
+        save_name='adv_image'
+    )
