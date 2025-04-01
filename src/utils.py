@@ -6,7 +6,7 @@ import os
 import matplotlib.pyplot as plt
 import torchvision
 from PIL import Image
-from transformers import ViTImageProcessor
+from transformers import ViTImageProcessor, ViTForImageClassification
 from tqdm import tqdm
 
 from src.attack import PGDAttack
@@ -33,7 +33,8 @@ def show_image(
     plt.axis('off')
     plt.show()
     if save_name:
-        plt.imsave(f"../{save_name}.png", image_array)
+        pil_image = Image.fromarray(image_array)
+        pil_image.save(save_name, format='PNG')
 
 def show_adversarial_pgd_image(
         image_tensor: torch.Tensor,
@@ -124,9 +125,15 @@ def attack_pgd_and_save_images(
 
                         # Транспонируем массив с (C, H, W) в (H, W, C)
                         image_array = np.transpose(image_array, (1, 2, 0))
+                        image_array = np.clip(image_array, 0, 1)
+
+                        image_array = (image_array * 255).astype(np.uint8)
+
                         os.makedirs(os.path.join(output_dir, category), exist_ok=True)
-                        save_path = os.path.join(output_dir, category, f"adversarial_{filenames_batch[i]}")
-                        plt.imsave(save_path, image_array)
+                        base_name = os.path.splitext(filenames_batch[i])[0]
+                        save_path = os.path.join(output_dir, category, f"adversarial_{base_name}.png")
+                        pil_image = Image.fromarray(image_array)
+                        pil_image.save(save_path, format='PNG')
 
                     # Очищаем списки для следующего батча
                     images_batch = []
