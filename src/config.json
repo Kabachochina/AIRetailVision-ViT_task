@@ -8,6 +8,7 @@
   },
 
   "testing_data": {
-    "path_orig_test": "..\\data_for_testing\\original_test"
+    "path_orig_test": "..\\data_for_testing\\original_test",
+    "path_pgd_test": "..\\data_for_testing\\pgd_test_eps_001_step_size_0001_steps_10"
   }
 }
