@@ -26,6 +26,15 @@ class PGDAttack:
             images : torch.Tensor,
             labels : torch.Tensor
     ) -> torch.Tensor:
+        """
+        Do pgd attack on images.
+        Turn eval mode for model
+        :param images: images for attack
+        :param labels: labels of images
+        :return: attacked images
+        """
+
+        self.model.eval()
         if self.rand:
             x = images + torch.empty_like(images).uniform_(-self.epsilon, self.epsilon)
             x = torch.clamp(x, 0, 1)
