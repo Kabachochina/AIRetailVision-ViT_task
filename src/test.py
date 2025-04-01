@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from src.attack import PGDAttack
+from src.utils import show_image
 
 
 def test_model(
@@ -56,6 +57,7 @@ def pgd_test_model(
     В процессе тестирования модели проводит атаку на изображения перед подачей их в саму модель
     """
     model.eval()
+    model.requires_grad_(requires_grad=False)
     test_loss = 0
     correct = 0
     count_processed_images = 0
@@ -71,6 +73,17 @@ def pgd_test_model(
         labels = batch["labels"].to(device)
 
         adv_images = attack.perturb(images, labels)
+
+        # '''
+        # показ картинки
+        # '''
+        #
+        # for idx, show in enumerate(adv_images):
+        #     show = show.cpu()
+        #     show_image(show)
+        # '''
+        # конец показа
+        # '''
 
         outputs = model(pixel_values=adv_images)
         logits = outputs.logits
