@@ -10,29 +10,37 @@ from evaluate import load
 from custom_dataset import CustomDataset
 import json
 
-from src.train import test_model
+from src.attack import PGDAttack
+from src.test import test_model, pgd_test_model
+from src.utils import show_image, show_adversarial_pgd_image, attack_pgd_and_save_images
 
 with open('config.json', 'r') as f:
     config = json.load(f)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-model_name_or_path = 'google/vit-base-patch16-224-in21k'
+# device = torch.device('cpu')
+
+# model_name_or_path = 'google/vit-base-patch16-224-in21k'
+model_name_or_path = '../saved_model'
 processor = ViTImageProcessor.from_pretrained(model_name_or_path)
 
-train_dataset = CustomDataset(
-    root_dir=config['data']['path_train'],
-    processor=processor
-)
-
-valid_dataset = CustomDataset(
-    root_dir=config['data']['path_valid'],
-    processor=processor
-)
-
 test_dataset = CustomDataset(
-    root_dir=config['data']['path_test'],
-    processor=processor
+    root_dir=config['testing_data']['path_orig_test']
+)
+
+adversarial_test_dataset = CustomDataset(
+    root_dir=config['testing_data']['path_pgd_test']
+)
+
+test_dataloader = DataLoader(
+    dataset=test_dataset,
+    batch_size=config['data']['batch_size']
+)
+
+adversarial_test_dataloader = DataLoader(
+    dataset=adversarial_test_dataset,
+    batch_size=config['data']['batch_size']
 )
 
 model = ViTForImageClassification.from_pretrained(
@@ -40,36 +48,13 @@ model = ViTForImageClassification.from_pretrained(
     num_labels=2
 ).to(device)
 
-training_args = TrainingArguments(
-    output_dir='../vit_tuned',
-    eval_strategy='epoch',
-    per_device_train_batch_size=config['data']['batch_size'],
-    per_device_eval_batch_size=config['data']['batch_size'],
-    num_train_epochs=3,
-    learning_rate=5e-5,
-    weight_decay=0.01
-)
+model.eval()
 
-
-metric = load("accuracy")
-
-def compute_metrics(p):
-    global metric
-    return metric.compute(predictions=np.argmax(p.predictions, axis=1), references=p.label_ids)
-
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    train_dataset=train_dataset,
-    eval_dataset=valid_dataset,
-    compute_metrics=compute_metrics
-)
-
-print('Test before training')
+print('Original test:')
 
 test_model(
     model=model,
-    loss_fn=torch.nn.CrossEntropyLoss(),
+    loss_fn=CrossEntropyLoss(),
     device=device,
     test_dataloader=DataLoader(
         dataset=test_dataset,
@@ -77,20 +62,53 @@ test_model(
     )
 )
 
-trainer.train()
-
-trainer.save_model(
-    output_dir='../saved_model'
+attack = PGDAttack(
+    model=model,
+    epsilon=0.01,
+    steps=10,
+    step_size=0.001
 )
 
-print('Test after training')
+attack_pgd_and_save_images(
+    attacked_dir='D:\\pythonProjects\\AIRetailVision\\data_for_testing\\original_test',
+    output_dir='D:\\pythonProjects\\AIRetailVision\\data_for_testing\\pgd_test_eps_001_step_size_0001_steps_10',
+    batch_size=config['data']['batch_size'],
+    attack=attack,
+    device=device
+)
+
+# для просмотра изображений
+# for batch in test_dataloader:
+#     # print(batch)
+#     show_image(
+#         image_tensor=batch['pixel_values'][0],
+#         save_name='orig_image'
+#     )
+#     show_adversarial_pgd_image(
+#         image_tensor=batch['pixel_values'].to(device),
+#         label=batch['labels'].to(device),
+#         attack=attack
+#     )
+#
+
+print('PGD test:')
 
 test_model(
     model=model,
     loss_fn=CrossEntropyLoss(),
     device=device,
-    test_dataloader=DataLoader(dataset=test_dataset)
+    test_dataloader=adversarial_test_dataloader
 )
 
+print('\nPGD test on-the-fly:')
 
-
+pgd_test_model(
+    model=model,
+    loss_fn=CrossEntropyLoss(),
+    device=device,
+    test_dataloader=DataLoader(
+        dataset=test_dataset,
+        batch_size=config['data']['batch_size']
+    ),
+    attack=attack
+)
